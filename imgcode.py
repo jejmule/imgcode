@@ -156,10 +156,10 @@ f.write("( developed by M. \"Vidmo\" Widomski )\n")
 f.write("(  github.com/vidmo91 )\n")
 f.write("(  hackaday.io/vidmo91 )\n")
 f.write(" \n")
-f.write("H5 S0 \n")
+#f.write("H5 S0 \n")
 f.write("F"+str(feedrate)+"\n")
-f.write("G0 Z0 ( for some grbl senders compatibility )\n")
-f.write(" \n") #add your G-CODE file header here
+#f.write("G0 Z0 ( for some grbl senders compatibility )\n")
+f.write("M92 \n") #add your G-CODE file header here
 # f.write("M5 S0\n")
 for y in range(y_size_output):
     prev_power=int(0)
