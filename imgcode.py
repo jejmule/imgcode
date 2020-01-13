@@ -34,7 +34,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy
+import numpy as np
 import matplotlib
 import matplotlib.pyplot
 import scipy.ndimage as ndimage
@@ -71,6 +71,9 @@ def fileDialog(fileName):
             raise NameError("wrong answer")
     return f
 
+def px2str(pixel,pixel_size,offset) : 
+    return str(round(pixel*pixel_size+offset,4))
+
 if len(sys.argv) != 10:
 
     print(colorama.Fore.RED+'Number of arguments:', len(sys.argv), 'arguments. (required 10 arguments)')
@@ -88,7 +91,7 @@ try:
     print("image loaded...")
 except:
     raise NameError("Something is wrong with image. Probably path")
-# imag = imag.astype(numpy.uint8)
+# imag = imag.astype(np.uint8)
 
 # open text file for writing:
 f = fileDialog(sys.argv[2])
@@ -117,38 +120,38 @@ scale = x_size_output/x_size_input
 # reseize image
 img = PIL.Image.fromarray(img,)
 img = img.resize((int(scale*x_size_input), int(scale*y_size_input)))
-img = numpy.asarray(img)
+img = np.asarray(img)
 
 # image size calculation
 y_size_output = len(img)
 x_size_output = len(img[0])
 
 # negative for laser etching
-img=numpy.subtract(255,img)
+img=np.subtract(255,img)
 
 # set max value of image colour to number of colours
 number_of_colours -= 1
-img = numpy.rint(numpy.multiply(img, number_of_colours/255))
+img = np.rint(np.multiply(img, number_of_colours/255))
 
 # apply uniform filter to smooth power over etchs
-img = ndimage.filters.uniform_filter1d(img,10,axis=1)
+#img = ndimage.filters.uniform_filter1d(img,10,axis=1)
 
 #save preview
-img_out=numpy.empty((x_size_output,y_size_output))
-img_out=numpy.rint(numpy.multiply(img, 255/number_of_colours))
-img_out = img_out.astype(numpy.uint8)
+img_out=np.empty((x_size_output,y_size_output))
+img_out=np.rint(np.multiply(img, 255/number_of_colours))
+img_out = img_out.astype(np.uint8)
 imageio.imwrite('out_img.png',img_out)
 
 #convert to feedrates
-img = numpy.rint(numpy.multiply(img, max_laser_power/number_of_colours))
+img = np.rint(np.multiply(img, max_laser_power/number_of_colours))
 
 # display preview before processing - requires closing plot window before proceeding
-# img2=numpy.subtract(number_of_colours,img)
+# img2=np.subtract(number_of_colours,img)
 # matplotlib.pyplot.imshow(img2, cmap='gray')
 # matplotlib.pyplot.show()
 
 # flip up-down for simplicity
-img=numpy.flip(img,0)
+img=np.flip(img,0)
 
 #Gcode processing
 f.write("( imgcode generated code )\n")
@@ -156,60 +159,58 @@ f.write("( developed by M. \"Vidmo\" Widomski )\n")
 f.write("(  github.com/vidmo91 )\n")
 f.write("(  hackaday.io/vidmo91 )\n")
 f.write(" \n")
-#f.write("H5 S0 \n")
-f.write("F"+str(feedrate)+"\n")
-#f.write("G0 Z0 ( for some grbl senders compatibility )\n")
-f.write("M92 \n") #add your G-CODE file header here
-# f.write("M5 S0\n")
-for y in range(y_size_output):
-    prev_power=int(0)
 
-    if 1-y%2:
-        # prev_power=int(0)
-        for x in range(x_size_output):
-            if (x == 0  and img[y][x] != 0): #first point, diffrent from 0
-                f.write("G0 X"+str(round(x*pixel_size_mm+x_offset_mm,4))+" Y" + str(round(y*pixel_size_mm+y_offset_mm,4))+"\n")
-                f.write("M3 S"+str(int(img[y][x]))+"\n")
-                prev_power = int(img[y][x])
-            elif x==(x_size_output-1):#eol
-                if (prev_power==0):
-                    f.write("M5 S0\n")
-                else:
-                    f.write("G1 X"+str(round((x)*pixel_size_mm+x_offset_mm,4))+" Y" + str(round(y*pixel_size_mm+y_offset_mm,4))+"\n")
-                    f.write("M5 S0\n")
-                prev_power=0
-            elif (prev_power != img[y][x]):#different power
-                if (prev_power==0): #transition from 0 to higher power
-                    f.write("G0 X"+str(round((x-1)*pixel_size_mm+x_offset_mm,4))+" Y" + str(round(y*pixel_size_mm+y_offset_mm,4))+"\n")
-                    f.write("M3 S"+str(int(img[y][x]))+"\n")
-                    prev_power = int(img[y][x])
-                if(prev_power != 0):# transition from some power to another
-                    f.write("G1 X"+str(round((x-1)*pixel_size_mm+x_offset_mm,4))+" Y" + str(round(y*pixel_size_mm+y_offset_mm,4))+"\n")
-                    f.write("M3 S"+str(int(img[y][x]))+"\n")
-                    prev_power = int(img[y][x])
-    else:
-        # prev_power=int(0)
-        for x in reversed(range(x_size_output)):
-            if (x == x_size_output-1  and img[y][x] != 0): #first point, diffrent from 0
-                f.write("G0 X"+str(round(x*pixel_size_mm+x_offset_mm,4))+" Y" + str(round(y*pixel_size_mm+y_offset_mm,4))+"\n")
-                f.write("M3 S"+str(int(img[y][x]))+"\n")
-                prev_power = int(img[y][x])
-            elif x==0:#eol
-                if (prev_power==0):
-                    f.write("M5 S0\n")
-                else:
-                    f.write("G1 X"+str(round((x)*pixel_size_mm+x_offset_mm,4))+" Y" + str(round(y*pixel_size_mm+y_offset_mm,4))+"\n")
-                    f.write("M5 S0\n")
-                prev_power=0
-            elif (prev_power != img[y][x]):#different power
-                if (prev_power==0): #transition from 0 to higher power
-                    f.write("G0 X"+str(round((x)*pixel_size_mm+x_offset_mm,4))+" Y" + str(round(y*pixel_size_mm+y_offset_mm,4))+"\n")
-                    f.write("M3 S"+str(int(img[y][x]))+"\n")
-                    prev_power = int(img[y][x])
-                if(prev_power != 0):# transition from some power to another
-                    f.write("G1 X"+str(round((x)*pixel_size_mm+x_offset_mm,4))+" Y" + str(round(y*pixel_size_mm+y_offset_mm,4))+"\n")
-                    f.write("M3 S"+str(int(img[y][x]))+"\n")
-                    prev_power = int(img[y][x])
+
+f.write("F"+str(feedrate)+"\n")
+f.write("M92 \n") #add your G-CODE file header here
+f.write("G64 R90 \n") #keep accelerating through G1 code with an angle between line of 90° : between X and Z segments
+
+acc = 500 # mm/s
+acc_dst_mm = (feedrate/60)**2 / acc #dst to accelerate in mm
+acc_dst_px = np.ceil(acc_dst_mm / pixel_size_mm) #dst to accelerate in px, rounded to the next greater integer
+
+for y in range(y_size_output):
+    
+    prev_power=int(0)
+    line = img[y,:]
+    if np.sum(line) > 0:    #line is not empty, sum of power is greater than 0
+        power_on = np.nonzero(line) #index where the power is not null
+        start = power_on[0][0]-1  #index before the line power is switch on
+        stop = power_on[0][-1]+1  #first index after the line where power is off
+#        power = np.trim_zeros(line) #trim line with leading and trailing 0 values (only power to be adress with G1)
+#        length = len(power)
+        interval = np.arange(start,stop+1,step=1)
+        
+        # G0 Fast move to next beginning of line. The acceleration distance is taken into account
+        if y%2 == 0 : #even line
+            f.write("G0 X"+px2str(start-acc_dst_px,pixel_size_mm,x_offset_mm)+" Y"+px2str(y,pixel_size_mm,y_offset_mm)+" Z0 \n")
+            f.write("M3 \n")
+        else : #odd line, revert the interval
+            interval = np.flip(interval)
+            f.write("G0 X"+px2str(stop+acc_dst_px,pixel_size_mm,x_offset_mm)+" Y"+px2str(y,pixel_size_mm,y_offset_mm)+" Z0 \n")
+            f.write("M3 \n")
+#        print("line",y,"start",start,"stop",stop,"interval",interval)
+        
+        # G1 Engrave, the engraving power is controlled using Z axis and the step/dir to pwm board to peform onflight processing
+        # Using G64 "look ahead feed" in mach3 or eding CNC, the machine accelerate through colinear lines
+        for x in interval :
+#            if x == interval[0] : #acceleration
+#                f.write("G1 X"+px2str(x,pixel_size_mm,x_offset_mm)+"\n")
+            if (prev_power != img[y][x]) : #power change
+                f.write("G1 X"+px2str(x,pixel_size_mm,x_offset_mm)+"\n")
+                f.write("G1 Z"+str(int(img[y][x])/1000)+"\n")
+                prev_power = img[y][x]
+#            if x == interval[-1]:   #set laser power to 0
+#                f.write("G1 Z0 \n")
+        
+        # G1 to the end of the line to deccelerate on this small G1 section
+        if y%2 == 0 : #even line
+            f.write("G1 X"+px2str(stop+acc_dst_px,pixel_size_mm,x_offset_mm)+"\n")
+            f.write("M5 \n")
+        else : #odd line, revert the interval
+            f.write("G1 X"+px2str(start-acc_dst_px,pixel_size_mm,x_offset_mm)+"\n")
+            f.write("M5 \n")
+        
 f.close()
 
 #input("everything done, press ENTER to exit, goodbye!")

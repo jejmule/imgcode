@@ -23,7 +23,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy
+import numpyp as np
 import matplotlib
 import matplotlib.pyplot
 import imageio
@@ -69,7 +69,7 @@ try:
     print("image loaded...")
 except:
     raise NameError("Something is wrong with image. Probably path")
-# imag = imag.astype(numpy.uint8)
+# imag = imag.astype(np.uint8)
 
 # open text file for writing:
 f = fileDialog(sys.argv[2])
@@ -98,35 +98,35 @@ scale = x_size_output/x_size_input
 # reseize image
 img = PIL.Image.fromarray(img,)
 img = img.resize((int(scale*x_size_input), int(scale*y_size_input)))
-img = numpy.asarray(img)
+img = np.asarray(img)
 
 # image size calculation
 y_size_output = len(img)
 x_size_output = len(img[0])
 
 # negative for laser etching 
-img=numpy.subtract(255,img)
+img=np.subtract(255,img)
 
 # set max value of image colour to number of colours 
 number_of_colours -= 1
-img = numpy.rint(numpy.multiply(img, number_of_colours/255))
+img = np.rint(np.multiply(img, number_of_colours/255))
 
 #save preview
-img_out=numpy.empty((x_size_output,y_size_output))
-img_out=numpy.rint(numpy.multiply(img, 255/number_of_colours))
-img_out = img_out.astype(numpy.uint8)
+img_out=np.empty((x_size_output,y_size_output))
+img_out=np.rint(np.multiply(img, 255/number_of_colours))
+img_out = img_out.astype(np.uint8)
 imageio.imwrite('out_img.png',img_out)
 
 #convert to feedrates
-img = numpy.rint(numpy.multiply(img, max_laser_power/number_of_colours))
+img = np.rint(np.multiply(img, max_laser_power/number_of_colours))
 
 # display preview before processing - requires closing plot window before proceeding 
-# img2=numpy.subtract(number_of_colours,img)
+# img2=np.subtract(number_of_colours,img)
 # matplotlib.pyplot.imshow(img2, cmap='gray')
 # matplotlib.pyplot.show()
 
 # flip up-down for simplicity 
-img=numpy.flip(img,0)
+img=np.flip(img,0)
 
 #Gcode processing
 f.write("( imgcode generated code )\n")
@@ -139,6 +139,7 @@ f.write("F"+str(feedrate)+"\n")
 f.write("G0 Z0 ( for some grbl senders compatibility )\n")
 f.write(" \n") #add your G-CODE file header here
 # f.write("M5 S0\n")
+
 for y in range(y_size_output):
     prev_power=int(0)
   
