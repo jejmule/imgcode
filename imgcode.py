@@ -163,7 +163,7 @@ f.write(" \n")
 
 f.write("F"+str(feedrate)+"\n")
 f.write("M92 \n") #add your G-CODE file header here
-f.write("G64 R360 \n") #keep accelerating through G1 code with an angle between line of 90° : between X and Z segments
+f.write("G64 R360 \n\n") #keep accelerating through G1 code with an angle between line of 90° : between X and Z segments
 
 #compute acceleration distance to operate G1 movement at constant speed
 acc = 500 # mm/s
