@@ -103,7 +103,7 @@ try:
     output_image_horizontal_size_mm = float(sys.argv[5])
     pixel_size_mm = float(sys.argv[6])
     feedrate = int(sys.argv[7])
-    max_laser_power = int(sys.argv[8])
+    max_laser_power = float(sys.argv[8])
     number_of_colours = int(sys.argv[9])
     print("parameters look OK...")
 except:
@@ -143,7 +143,7 @@ img_out = img_out.astype(np.uint8)
 imageio.imwrite('out_img.png',img_out)
 
 #convert to feedrates
-img = np.rint(np.multiply(img, max_laser_power/number_of_colours))
+img = np.multiply(img, max_laser_power/number_of_colours)
 
 # display preview before processing - requires closing plot window before proceeding
 # img2=np.subtract(number_of_colours,img)
@@ -175,9 +175,9 @@ acc_dst_px = int(np.ceil(acc_dst_mm / pixel_size_mm)) #dst to accelerate in px, 
 #x_offset_mm -= acc_dst_px * pixel_size_mm
 
 #scan to generate g code
+f.write("M3 \n")
 for y in range(y_size_output):
-    
-    prev_power=int(0)
+    prev_power = 0
     line = img[y,:]
     if np.sum(line) > 0:    #line is not empty, sum of power is greater than 0
         power_on = np.nonzero(line) #index where the power is not null
@@ -187,34 +187,30 @@ for y in range(y_size_output):
         # G0 Fast move to next beginning of line. The acceleration distance is taken into account
         if y%2 == 0 : #even line
             f.write("G0 X"+px2str(start-acc_dst_px,pixel_size_mm,x_offset_mm)+" Y"+px2str(y,pixel_size_mm,y_offset_mm)+" Z0 \n")
-            f.write("M3 \n")
             #add 0 to the end of the line(needed to switch off the laser)
             line = np.append(line,0)
             interval = np.arange(start,stop+1,step=1)
         else : #odd line, revert the interval
             f.write("G0 X"+px2str(stop+acc_dst_px,pixel_size_mm,x_offset_mm)+" Y"+px2str(y,pixel_size_mm,y_offset_mm)+" Z0 \n")
-            f.write("M3 \n")
             #add 0 to the beginnig of the line
             line = np.insert(line,0,0)
             interval = np.arange(stop,start-1,step=-1)
-#        print("line",y,"start",start,"stop",stop,"interval",interval)
         
         # G1 Engrave, the engraving power is controlled using Z axis and the step/dir to pwm board to peform onflight processing
         # Using G64 "look ahead feed" in mach3 or eding CNC, the machine accelerate through colinear lines
         for x in interval :
-            if (prev_power != line[x]) : #power change
-                f.write("G1 X"+px2str(x,pixel_size_mm,x_offset_mm)+"\n")
-                f.write("G1 Z"+str(int(line[x])/1000)+"\n")
+            if (prev_power != line[x] or line[x] != line[x+1]) : #power change
+                f.write("G1 X"+px2str(x,pixel_size_mm,x_offset_mm))
+                f.write(" Z"+str('{:.6f}'.format(line[x]))+"\n")
                 prev_power = line[x]
         
         # G1 to the end of the line to deccelerate on this small G1 section
         if y%2 == 0 : #even line
             f.write("G1 X"+px2str(stop+acc_dst_px,pixel_size_mm,x_offset_mm)+"\n")
-            f.write("M5 \n")
         else : #odd line, revert the interval
             f.write("G1 X"+px2str(start-acc_dst_px,pixel_size_mm,x_offset_mm)+"\n")
-            f.write("M5 \n")
-        
+            
+f.write("M5 \n")        
 f.close()
 
 #input("everything done, press ENTER to exit, goodbye!")
