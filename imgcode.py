@@ -181,7 +181,7 @@ for y in range(y_size_output):
     line = img[y,:]
     if np.sum(line) > 0:    #line is not empty, sum of power is greater than 0
         power_on = np.nonzero(line) #index where the power is not null
-        start = power_on[0][0] #index before the line power is switch on
+        start = power_on[0][0] -1 #index before the line power is switch on
         stop = power_on[0][-1] + 1 #first index after the line where power is off
         
         # G0 Fast move to next beginning of line. The acceleration distance is taken into account
